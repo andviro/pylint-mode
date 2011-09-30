@@ -39,6 +39,8 @@ endif
 " Commands
 command PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
 command PyLint :call s:PyLint()
+au CursorHold <buffer> call s:GetPyLintMessage()
+au CursorMoved <buffer> call s:GetPyLintMessage()
 
 " Signs definition
 sign define W text=WW texthl=Todo
@@ -54,6 +56,7 @@ sys.path.insert(0, vim.eval("g:PyLintDirectory"))
 
 from logilab.astng.builder import MANAGER
 from pylint import lint, checkers
+import re
 
 linter = lint.PyLinter()
 checkers.initialize(linter)
@@ -66,7 +69,8 @@ def check():
     MANAGER.astng_cache.clear()
     linter.reporter.out = StringIO.StringIO()
     linter.check(target)
-    vim.command('let pylint_output = "%s"' % linter.reporter.out.getvalue())
+    output = linter.reporter.out.getvalue()
+    vim.command('let pylint_output = "%s"' % re.escape(output if output else ""))
 
 EOF
 
@@ -83,6 +87,8 @@ function! s:PyLint()
     py check()
 
     let b:qf_list = []
+    let s:matchDict = {}
+    let b:matchedlines = {}
     for error in split(pylint_output, "\n")
         let b:parts = matchlist(error, '\v([A-Za-z\.]+):(\d+): \[([EWRCI]+)[^\]]*\] (.*)')
 
@@ -93,6 +99,7 @@ function! s:PyLint()
             let l:qf_item.filename = expand('%')
             let l:qf_item.bufnr = bufnr(b:parts[1])
             let l:qf_item.lnum = b:parts[2]
+            let s:matchDict[b:parts[2]] = b:parts[4]
             let l:qf_item.type = b:parts[3]
             let l:qf_item.text = b:parts[4]
             call add(b:qf_list, l:qf_item)
@@ -129,3 +136,44 @@ function! s:PlacePyLintSigns()
         let l:id = l:id + 1
     endfor
 endfunction
+
+" keep track of whether or not we are showing a message
+let b:showing_message = 0
+" WideMsg() prints [long] message up to (&columns-1) length
+" guaranteed without "Press Enter" prompt.
+if !exists("*s:WideMsg")
+    function s:WideMsg(msg)
+        let x=&ruler | let y=&showcmd
+        set noruler noshowcmd
+        redraw
+        echo strpart(a:msg, 0, &columns-1)
+        let &ruler=x | let &showcmd=y
+    endfun
+endif
+
+
+if !exists("*s:GetPyLintMessage")
+    function s:GetPyLintMessage()
+        let s:cursorPos = getpos(".")
+
+        " Bail if RunPyflakes hasn't been called yet.
+        if !exists('s:matchDict')
+            return
+        endif
+
+        " if there's a message for the line the cursor is currently on, echo
+        " it to the console
+        if has_key(s:matchDict, s:cursorPos[1])
+            let s:pyflakesMatch = get(s:matchDict, s:cursorPos[1])
+            call s:WideMsg(s:pyflakesMatch)
+            let b:showing_message = 1
+            return
+        endif
+
+        " otherwise, if we're showing a message, clear it
+        if b:showing_message == 1
+            echo
+            let b:showing_message = 0
+        endif
+    endfunction
+endif
