@@ -39,6 +39,7 @@ endif
 " Commands
 command PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
 command PyLint :call s:PyLint()
+command PyLintAuto :call s:PyLintAuto()
 au CursorHold <buffer> call s:GetPyLintMessage()
 au CursorMoved <buffer> call s:GetPyLintMessage()
 
@@ -56,7 +57,19 @@ sys.path.insert(0, vim.eval("g:PyLintDirectory"))
 
 from logilab.astng.builder import MANAGER
 from pylint import lint, checkers
+from pep8.autopep8 import fix_file
 import re
+
+class Options():
+    verbose = 0
+    diff = False
+    in_place = True
+    recursive = False
+    pep8_passes = 100
+    max_line_length = 79
+    ignore = ''
+    select = ''
+    aggressive = False
 
 linter = lint.PyLinter()
 checkers.initialize(linter)
@@ -71,6 +84,10 @@ def check():
     linter.check(target)
     output = linter.reporter.out.getvalue()
     vim.command('let pylint_output = "%s"' % re.escape(output if output else ""))
+
+
+def fix_current_file():
+    fix_file(vim.current.buffer.name, Options)
 
 EOF
 
@@ -124,6 +141,21 @@ function! s:PyLint()
     endif
 
 endfunction
+
+
+fun! s:PyLintAuto() "{{{
+    if &modifiable && &modified
+        try
+            write
+        catch /E212/
+            echohl Error | echo "File modified and I can't save it. Cancel operation." | echohl None
+            return 0
+        endtry
+    endif
+    py fix_file(vim.current.buffer.name, Options)
+    cclose
+    edit
+endfunction "}}}
 
 function! s:PlacePyLintSigns()
     "first remove all sings
