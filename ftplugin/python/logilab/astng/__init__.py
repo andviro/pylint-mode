@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 # copyright 2003-2010 Sylvain Thenault, all rights reserved.
 # contact mailto:thenault@gmail.com
@@ -24,7 +24,7 @@ python source code for projects such as pychecker, pyreverse,
 pylint... Well, actually the development of this library is essentially
 governed by pylint's needs.
 
-It extends class defined in the compiler.ast [1] module with some
+It extends class defined in the python's _ast module with some
 additional methods and attributes. Instance attributes are added by a
 builder object, which can either generate extended ast (let's call
 them astng ;) by visiting an existent ast tree or by inspecting living
@@ -71,3 +71,15 @@ from logilab.astng.scoped_nodes import builtin_lookup
 from logilab.astng.manager import ASTNGManager, Project
 MANAGER = ASTNGManager()
 del ASTNGManager
+
+# load brain plugins
+from os import listdir
+from os.path import join, dirname
+BRAIN_MODULES_DIR = join(dirname(__file__), 'brain')
+if BRAIN_MODULES_DIR not in sys.path:
+    # add it to the end of the list so user path take precedence
+    sys.path.append(BRAIN_MODULES_DIR)
+# load modules in this directory
+for module in listdir(BRAIN_MODULES_DIR):
+    if module.endswith('.py'):
+        __import__(module[:-3])

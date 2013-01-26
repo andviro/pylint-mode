@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# copyright 2003-2010 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 # copyright 2003-2010 Sylvain Thenault, all rights reserved.
 # contact mailto:thenault@gmail.com
@@ -24,6 +24,7 @@ inference utils.
 
 __docformat__ = "restructuredtext en"
 
+from contextlib import contextmanager
 
 from logilab.common.compat import builtins
 
@@ -80,6 +81,12 @@ class InferenceContext(object):
         clone.boundnode = self.boundnode
         return clone
 
+    @contextmanager
+    def restore_path(self):
+        path = set(self.path)
+        yield
+        self.path = path
+
 def copy_context(context):
     if context is not None:
         return context.clone()
@@ -124,6 +131,8 @@ class _Yes(object):
     def __repr__(self):
         return 'YES'
     def __getattribute__(self, name):
+        if name == 'next':
+            raise AttributeError('next method should not be called')
         if name.startswith('__') and name.endswith('__'):
             # to avoid inspection pb
             return super(_Yes, self).__getattribute__(name)

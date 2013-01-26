@@ -17,7 +17,7 @@
 Check source code is ascii only or has an encoding declaration (PEP 263)
 """
 
-import re, sys
+import re
 
 from pylint.interfaces import IRawChecker
 from pylint.checkers import BaseChecker
@@ -25,6 +25,7 @@ from pylint.checkers import BaseChecker
 
 MSGS = {
     'W0511': ('%s',
+              'fixme',
               'Used when a warning note as FIXME or XXX is detected.'),
     }
 
@@ -55,7 +56,7 @@ separated by a comma.'
         notes
         """
         stream = node.file_stream
-        stream.seek(0)
+        stream.seek(0) # XXX may be removed with astng > 0.23
         # warning notes in the code
         notes = []
         for note in self.config.notes:

@@ -29,6 +29,7 @@ Base id of standard checkers (used in msg and report ids):
 11: typecheck
 12: logging
 13: string_format
+14: string_constant
 14-50: not yet used: reserved for future internal checkers.
 51-99: perhaps used: reserved for external checkers
 
@@ -120,7 +121,7 @@ class BaseRawChecker(BaseChecker):
         stream must implement the readline method
         """
         stream = node.file_stream
-        stream.seek(0)
+        stream.seek(0) # XXX may be removed with astng > 0.23
         self.process_tokens(tokenize.generate_tokens(stream.readline))
 
     def process_tokens(self, tokens):
@@ -160,4 +161,4 @@ def package_load(linter, directory):
                     module.register(linter)
                     imported[basename] = 1
 
-__all__ = ('CheckerHandler', 'BaseChecker', 'initialize', 'package_load')
+__all__ = ('BaseChecker', 'initialize', 'package_load')

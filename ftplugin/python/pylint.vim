@@ -112,7 +112,7 @@ function! s:PyLint()
     if g:PyLintCWindow
         call setqflist(b:qf_list, 'r')
         if len(b:qf_list)
-            cwindow
+            8cwindow
         else
             cclose
         endif

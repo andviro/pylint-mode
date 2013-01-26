@@ -1,1 +1,10 @@
-*.pyc
+*~
+*.sw?
+*.py[cod]
+.coverage
+.tox
+.mr.developer.cfg
+.project
+.pydevproject
+.ropeproject
+.idea

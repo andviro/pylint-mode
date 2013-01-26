@@ -1,4 +1,4 @@
-# copyright 2003-2011 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
+# copyright 2003-2012 LOGILAB S.A. (Paris, FRANCE), all rights reserved.
 # contact http://www.logilab.fr/ -- mailto:contact@logilab.fr
 # copyright 2003-2010 Sylvain Thenault, all rights reserved.
 # contact mailto:thenault@gmail.com
@@ -21,6 +21,7 @@
 new local scope in the language definition : Module, Class, Function (and
 Lambda, GenExpr, DictComp and SetComp to some extent).
 """
+from __future__ import with_statement
 
 __doctype__ = "restructuredtext en"
 
@@ -219,6 +220,9 @@ class Module(LocalsDictNodeNG):
     # the file from which as been extracted the astng representation. It may
     # be None if the representation has been built from a built-in module
     file = None
+    # encoding of python source file, so we can get unicode out of it (python2
+    # only)
+    file_encoding = None
     # the module name
     name = None
     # boolean for astng built from source (i.e. ast)
@@ -241,6 +245,12 @@ class Module(LocalsDictNodeNG):
         self.pure_python = pure_python
         self.locals = self.globals = {}
         self.body = []
+
+    @property
+    def file_stream(self):
+        if self.file is not None:
+            return open(self.file)
+        return None
 
     def block_range(self, lineno):
         """return block line numbers.
@@ -459,6 +469,7 @@ else:
 
 class Lambda(LocalsDictNodeNG, FilterStmtsMixin):
     _astng_fields = ('args', 'body',)
+    name = '<lambda>'
 
     # function's type, 'function' | 'method' | 'staticmethod' | 'classmethod'
     type = 'function'
@@ -508,6 +519,7 @@ class Lambda(LocalsDictNodeNG, FilterStmtsMixin):
             frame = self
         return frame._scope_lookup(node, name, offset)
 
+
 class Function(Statement, Lambda):
     _astng_fields = ('decorators', 'args', 'body')
 
@@ -531,7 +543,8 @@ class Function(Statement, Lambda):
         self.fromlineno = self.lineno
         # lineno is the line number of the first decorator, we want the def statement lineno
         if self.decorators is not None:
-            self.fromlineno += len(self.decorators.nodes)
+            self.fromlineno += sum(node.tolineno - node.lineno + 1
+                                   for node in self.decorators.nodes)
         self.tolineno = lastchild.tolineno
         self.blockstart_tolineno = self.args.tolineno
 
@@ -766,29 +779,30 @@ class Class(Statement, LocalsDictNodeNG, FilterStmtsMixin):
         """
         # FIXME: should be possible to choose the resolution order
         # XXX inference make infinite loops possible here (see BaseTransformer
-        # manipulation in the builder module for instance !)
+        # manipulation in the builder module for instance)
         yielded = set([self])
         if context is None:
             context = InferenceContext()
         for stmt in self.bases:
-            try:
-                for baseobj in stmt.infer(context):
-                    if not isinstance(baseobj, Class):
-                        # duh ?
-                        continue
-                    if baseobj in yielded:
-                        continue # cf xxx above
-                    yielded.add(baseobj)
-                    yield baseobj
-                    if recurs:
-                        for grandpa in baseobj.ancestors(True, context):
-                            if grandpa in yielded:
-                                continue # cf xxx above
-                            yielded.add(grandpa)
-                            yield grandpa
-            except InferenceError:
-                # XXX log error ?
-                continue
+            with context.restore_path():
+                try:
+                    for baseobj in stmt.infer(context):
+                        if not isinstance(baseobj, Class):
+                            # duh ?
+                            continue
+                        if baseobj in yielded:
+                            continue # cf xxx above
+                        yielded.add(baseobj)
+                        yield baseobj
+                        if recurs:
+                            for grandpa in baseobj.ancestors(True, context):
+                                if grandpa in yielded:
+                                    continue # cf xxx above
+                                yielded.add(grandpa)
+                                yield grandpa
+                except InferenceError:
+                    # XXX log error ?
+                    continue
 
     def local_attr_ancestors(self, name, context=None):
         """return an iterator on astng representation of parent classes
@@ -835,7 +849,7 @@ class Class(Statement, LocalsDictNodeNG, FilterStmtsMixin):
           its parent classes
         """
         values = self.instance_attrs.get(name, [])
-        # get if from the first parent implementing it if any
+        # get all values from parents
         for class_node in self.instance_attr_ancestors(name, context):
             values += class_node.instance_attrs[name]
         if not values:
@@ -965,5 +979,3 @@ class Class(Statement, LocalsDictNodeNG, FilterStmtsMixin):
                 yield iface
         if missing:
             raise InferenceError()
-
-
