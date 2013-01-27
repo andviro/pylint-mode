@@ -19,7 +19,7 @@ if !exists('g:PyLintGeneratedMembers')
     let g:PyLintGeneratedMembers = 'REQUEST,acl_users,aq_parent,objects,DoesNotExist,_meta,status_code,content,context'
 endif
 if !exists('g:PyLintCWindow')
-    let g:PyLintCWindow = 1
+    let g:PyLintCWindow = 8
 endif
 if !exists('g:PyLintSigns')
     let g:PyLintSigns = 1
@@ -126,13 +126,15 @@ function! s:PyLint()
     endfor
 
     " Open cwindow
-    if g:PyLintCWindow
+    if g:PyLintCWindow > 0
         call setqflist(b:qf_list, 'r')
-        if len(b:qf_list)
-            8cwindow
-        else
-            cclose
+        let l:winsize = len(b:qf_list)
+        if l:winsize == 0
+            return
+        elseif l:winsize > g:PyLintCWindow
+            let l:winsize = g:PyLintCWindow
         endif
+        exec l:winsize . 'cwindow'
     endif
 
     " Place signs
