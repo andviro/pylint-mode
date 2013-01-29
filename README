@@ -1,7 +1,7 @@
-This is a mirror of http://www.vim.org/scripts/script.php?script_id=3748
+This is a fork of https://github.com/klen/pylint-mode
 
 Pylint-mode is a vim mode that allows you to use the pylint library in vim to provide features like python code looking for bugs.
 
 This vim plugin allow you use the pylint library in vim very easily. There is no need to install the pylint library on your system.
 
-https://github.com/klen/pylint-mode
+https://github.com/andviro/pylint-mode
