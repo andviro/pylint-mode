@@ -585,6 +585,7 @@ This is used by the global evaluation report (RP0004).'}),
             # if it's actually a c extension)
             self.current_file = astng.file
             self.check_astng_module(astng, walker, rawcheckers)
+            astng.file_stream.close()
         # notify global end
         self.set_current_module('')
         self.stats['statement'] = walker.nbstatements

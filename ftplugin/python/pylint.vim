@@ -51,7 +51,7 @@ sign define E text=EE texthl=Error
 
 python << EOF
 
-import sys, vim, StringIO
+import sys, vim, cStringIO
 
 sys.path.insert(0, vim.eval("g:PyLintDirectory"))
 
@@ -80,10 +80,11 @@ linter.set_option('reports', 0)
 def check():
     target = vim.eval("expand('%:p')")
     MANAGER.astng_cache.clear()
-    linter.reporter.out = StringIO.StringIO()
+    linter.reporter.out = cStringIO.StringIO()
     linter.check(target)
-    output = linter.reporter.out.getvalue()
-    vim.command('let pylint_output = "%s"' % re.escape(output if output else ""))
+    output = unicode(linter.reporter.out.getvalue(), 'utf-8')
+    out = re.escape(output if output else "")
+    vim.command('let b:pylint_output = "%s"' % out)
 
 
 def fix_current_file():
@@ -106,7 +107,7 @@ function! s:PyLint()
     let b:qf_list = []
     let s:matchDict = {}
     let b:matchedlines = {}
-    for error in split(pylint_output, "\n")
+    for error in split(b:pylint_output, "\n")
         let b:parts = matchlist(error, '\v([A-Za-z\.]+):(\d+): \[([EWRCI]+)[^\]]*\] (.*)')
 
         if len(b:parts) > 3
@@ -126,14 +127,10 @@ function! s:PyLint()
     endfor
 
     " Open cwindow
-    if g:PyLintCWindow > 0
-        call setqflist(b:qf_list, 'r')
+    if g:PyLintCWindow && len(b:qf_list)
         let l:winsize = len(b:qf_list)
-        if l:winsize == 0
-            return
-        elseif l:winsize > g:PyLintCWindow
-            let l:winsize = g:PyLintCWindow
-        endif
+        call setqflist(b:qf_list, 'r')
+        let l:winsize = l:winsize > g:PyLintCWindow ? g:PyLintCWindow : l:winsize
         exec l:winsize . 'cwindow'
     endif
 
