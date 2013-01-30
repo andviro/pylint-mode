@@ -3,6 +3,16 @@ if !has('python')
     echo "Error: PyLint required vim compiled with +python."
     finish
 endif
+"
+" Call PyLint only on write
+if g:PyLintOnWrite
+    augroup PyLintPlugin
+        au!
+        au BufWritePost <buffer> call s:PyLint()
+        au CursorHold <buffer> call s:GetPyLintMessage()
+        au CursorMoved <buffer> call s:GetPyLintMessage()
+    augroup end
+endif
 
 if !exists('g:PyLintOnWrite')
     let g:PyLintOnWrite = 1
