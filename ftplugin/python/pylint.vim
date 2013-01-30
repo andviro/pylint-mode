@@ -125,19 +125,23 @@ function! s:PyLint()
         endif
 
     endfor
+    "
 
-    " Open cwindow
-    if g:PyLintCWindow && len(b:qf_list)
-        let l:winsize = len(b:qf_list)
-        call setqflist(b:qf_list, 'r')
-        let l:winsize = l:winsize > g:PyLintCWindow ? g:PyLintCWindow : l:winsize
-        exec l:winsize . 'cwindow'
-    endif
-
+    call setqflist(b:qf_list, 'r')
     " Place signs
     if g:PyLintSigns
         call s:PlacePyLintSigns()
     endif
+
+    " Open cwindow
+    if g:PyLintCWindow
+        cclose
+        if len(b:qf_list)
+            let l:winsize = len(b:qf_list) > g:PyLintCWindow ? g:PyLintCWindow : len(b:qf_list)
+            exec l:winsize . 'cwindow'
+        endif
+    endif
+    "
 
 endfunction
 
