@@ -3,6 +3,22 @@ if !has('python')
     echo "Error: PyLint required vim compiled with +python."
     finish
 endif
+"
+" Call PyLint only on write
+if g:PyLintOnWrite
+    augroup PyLintPlugin
+        au!
+        au BufWritePost <buffer> call s:PyLint()
+        au CursorHold <buffer> call s:GetPyLintMessage()
+        au CursorMoved <buffer> call s:GetPyLintMessage()
+    augroup end
+endif
+"
+" Signs definition
+sign define W text=WW texthl=Todo
+sign define C text=CC texthl=Comment
+sign define R text=RR texthl=Visual
+sign define E text=EE texthl=Error
 
 " Check for pylint plugin is loaded
 if exists("loaded_pylint")
@@ -28,26 +44,11 @@ if !exists('g:PyLintOnWrite')
     let g:PyLintOnWrite = 1
 endif
 
-" Call PyLint only on write
-if g:PyLintOnWrite
-    augroup PyLintPlugin
-        au!
-        au BufWritePost <buffer> call s:PyLint()
-        au CursorHold <buffer> call s:GetPyLintMessage()
-        au CursorMoved <buffer> call s:GetPyLintMessage()
-    augroup end
-endif
 
 " Commands
 command PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
 command PyLint :call s:PyLint()
 command PyLintAuto :call s:PyLintAuto()
-
-" Signs definition
-sign define W text=WW texthl=Todo
-sign define C text=CC texthl=Comment
-sign define R text=RR texthl=Visual
-sign define E text=EE texthl=Error
 
 python << EOF
 
