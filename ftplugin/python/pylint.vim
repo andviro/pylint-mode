@@ -11,7 +11,6 @@ endif
 " Call PyLint only on write
 if g:PyLintOnWrite
     augroup PyLintPlugin
-        au!
         au BufWritePost <buffer> call s:PyLint()
         au CursorHold <buffer> call s:GetPyLintMessage()
         au CursorMoved <buffer> call s:GetPyLintMessage()
@@ -41,9 +40,9 @@ endif
 
 
 " Commands
-command PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
-command PyLint :call s:PyLint()
-command PyLintAuto :call s:PyLintAuto()
+command! PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
+command! PyLint :call s:PyLint()
+command! PyLintAuto :call s:PyLintAuto()
 
 " Signs definition
 sign define W text=WW texthl=Todo
@@ -142,8 +141,6 @@ function! s:PyLint()
             exec l:winsize . 'cwindow'
         endif
     endif
-    "
-
 endfunction
 
 
