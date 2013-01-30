@@ -3,7 +3,11 @@ if !has('python')
     echo "Error: PyLint required vim compiled with +python."
     finish
 endif
-"
+
+if !exists('g:PyLintOnWrite')
+    let g:PyLintOnWrite = 1
+endif
+
 " Call PyLint only on write
 if g:PyLintOnWrite
     augroup PyLintPlugin
@@ -13,19 +17,13 @@ if g:PyLintOnWrite
         au CursorMoved <buffer> call s:GetPyLintMessage()
     augroup end
 endif
-"
-" Signs definition
-sign define W text=WW texthl=Todo
-sign define C text=CC texthl=Comment
-sign define R text=RR texthl=Visual
-sign define E text=EE texthl=Error
 
+let b:showing_message = 0
+"
 " Check for pylint plugin is loaded
-if exists("loaded_pylint")
+if exists("g:PyLintDirectory")
     finish
 endif
-let loaded_pylint = 1
-
 " Init variables
 let g:PyLintDirectory = expand('<sfile>:p:h')
 if !exists('g:PyLintDissabledMessages')
@@ -40,9 +38,6 @@ endif
 if !exists('g:PyLintSigns')
     let g:PyLintSigns = 1
 endif
-if !exists('g:PyLintOnWrite')
-    let g:PyLintOnWrite = 1
-endif
 
 
 " Commands
@@ -50,12 +45,17 @@ command PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:py
 command PyLint :call s:PyLint()
 command PyLintAuto :call s:PyLintAuto()
 
+" Signs definition
+sign define W text=WW texthl=Todo
+sign define C text=CC texthl=Comment
+sign define R text=RR texthl=Visual
+sign define E text=EE texthl=Error
+
 python << EOF
 
 import sys, vim, cStringIO
 
 sys.path.insert(0, vim.eval("g:PyLintDirectory"))
-
 from logilab.astng.builder import MANAGER
 from pylint import lint, checkers
 from pep8.autopep8 import fix_file
@@ -174,7 +174,6 @@ function! s:PlacePyLintSigns()
 endfunction
 
 " keep track of whether or not we are showing a message
-let b:showing_message = 0
 " WideMsg() prints [long] message up to (&columns-1) length
 " guaranteed without "Press Enter" prompt.
 if !exists("*s:WideMsg")
