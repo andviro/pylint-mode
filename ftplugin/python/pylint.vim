@@ -108,7 +108,7 @@ function! s:PyLint()
     let s:matchDict = {}
     let b:matchedlines = {}
     for error in split(b:pylint_output, "\n")
-        let b:parts = matchlist(error, '\v([A-Za-z\.]+):(\d+): \[([EWRCI]+)[^\]]*\] (.*)')
+        let b:parts = matchlist(error, '\v([A-Za-z\.]+):(\d+): \[([EWRCI])[^\]]*\] (.*)')
 
         if len(b:parts) > 3
 
