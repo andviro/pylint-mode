@@ -11,7 +11,7 @@ endif
 " Call PyLint only on write
 if g:PyLintOnWrite
     augroup PyLintPlugin
-        au BufWritePost <buffer> call s:PyLint()
+        au BufWritePost <buffer> call s:PyLintOnWrite()
         au CursorHold <buffer> call s:GetPyLintMessage()
         au CursorMoved <buffer> call s:GetPyLintMessage()
     augroup end
@@ -92,12 +92,14 @@ def fix_current_file():
 
 EOF
 
-function! s:PyLint()
-
-    if exists("b:pylint_disabled") && b:pylint_disabled == 1
+function! s:PyLintOnWrite()
+    if !g:PyLintOnWrite or b:pylint_disabled
         return
     endif
+    call s:PyLint()
+endfunction
 
+function! s:PyLint()
     if &modifiable && &modified
         write
     endif	
