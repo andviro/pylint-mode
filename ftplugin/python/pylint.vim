@@ -93,7 +93,7 @@ def fix_current_file():
 EOF
 
 function! s:PyLintOnWrite()
-    if !g:PyLintOnWrite or b:pylint_disabled
+    if !g:PyLintOnWrite || exists("b:pylint_disabled") && b:pylint_disabled
         return
     endif
     call s:PyLint()
@@ -102,7 +102,7 @@ endfunction
 function! s:PyLint()
     if &modifiable && &modified
         write
-    endif	
+    endif
 
     py check()
 
