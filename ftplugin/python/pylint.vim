@@ -11,6 +11,7 @@ endif
 " Call PyLint only on write
 if g:PyLintOnWrite
     augroup PyLintPlugin
+        au!
         au BufWritePost <buffer> call s:PyLintOnWrite()
         au CursorHold <buffer> call s:GetPyLintMessage()
         au CursorMoved <buffer> call s:GetPyLintMessage()
@@ -41,7 +42,7 @@ endif
 
 " Commands
 command! PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
-command! PyLint :call s:PyLint()
+command! PyLint :call s:PyLintCheck()
 command! PyLintAuto :call s:PyLintAuto()
 
 " Signs definition
@@ -78,13 +79,16 @@ linter.set_option('disable', vim.eval("g:PyLintDissabledMessages"))
 linter.set_option('reports', 0)
 
 def check():
-    target = vim.eval("expand('%:p')")
+    target = vim.current.buffer.name
     MANAGER.astng_cache.clear()
     linter.reporter.out = cStringIO.StringIO()
-    linter.check(target)
-    output = unicode(linter.reporter.out.getvalue(), 'utf-8')
+    try:
+        linter.check(target)
+        output = unicode(linter.reporter.out.getvalue(), 'utf-8')
+    except Exception, e:
+        output = None
     out = re.escape(output if output else "")
-    vim.command('let b:pylint_output = "%s"' % out)
+    vim.command('let b:pylint_output = "{0}"'.format(out))
 
 
 def fix_current_file():
@@ -96,14 +100,17 @@ function! s:PyLintOnWrite()
     if !g:PyLintOnWrite || exists("b:pylint_disabled") && b:pylint_disabled
         return
     endif
-    call s:PyLint()
+    call s:PyLintCheck()
 endfunction
 
 function! s:PyLint()
     if &modifiable && &modified
         write
     endif
+    call s:PyLintCheck()
+endfun
 
+function! s:PyLintCheck()
     py check()
 
     let b:qf_list = []
