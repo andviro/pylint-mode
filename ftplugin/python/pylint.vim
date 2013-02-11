@@ -4,26 +4,36 @@ if !has('python')
     finish
 endif
 
+if !exists('b:pylint_initialized')
+    let b:pylint_initialized = 1
+
+    au BufWritePost <buffer> call pylint#on_write()
+    au CursorHold <buffer> call pylint#get_message()
+    au CursorMoved <buffer> call pylint#get_message()
+    
+    " Commands
+    command! -buffer PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
+    command! -buffer PyLint :call pylint#run()
+    command! -buffer PyLintAuto :call pylint#auto()
+
+    let b:showing_message = 0
+    
+    " Signs definition
+    sign define W text=WW texthl=Todo
+    sign define C text=CC texthl=Comment
+    sign define R text=RR texthl=Visual
+    sign define E text=EE texthl=Error
+endif
+
+ "Check for pylint plugin is loaded
+if exists("g:PyLintDirectory")
+    finish
+endif
+
 if !exists('g:PyLintOnWrite')
     let g:PyLintOnWrite = 1
 endif
 
-" Call PyLint only on write
-if g:PyLintOnWrite
-    augroup PyLintPlugin
-        au!
-        au BufWritePost <buffer> call s:PyLintOnWrite()
-        au CursorHold <buffer> call s:GetPyLintMessage()
-        au CursorMoved <buffer> call s:GetPyLintMessage()
-    augroup end
-endif
-
-let b:showing_message = 0
-"
-" Check for pylint plugin is loaded
-if exists("g:PyLintDirectory")
-    finish
-endif
 " Init variables
 let g:PyLintDirectory = expand('<sfile>:p:h')
 if !exists('g:PyLintDissabledMessages')
@@ -33,23 +43,11 @@ if !exists('g:PyLintGeneratedMembers')
     let g:PyLintGeneratedMembers = 'REQUEST,acl_users,aq_parent,objects,DoesNotExist,_meta,status_code,content,context'
 endif
 if !exists('g:PyLintCWindow')
-    let g:PyLintCWindow = 8
+    let g:PyLintCWindow = 6
 endif
 if !exists('g:PyLintSigns')
     let g:PyLintSigns = 1
 endif
-
-
-" Commands
-command! PyLintToggle :let b:pylint_disabled = exists('b:pylint_disabled') ? b:pylint_disabled ? 0 : 1 : 1
-command! PyLint :call s:PyLintCheck()
-command! PyLintAuto :call s:PyLintAuto()
-
-" Signs definition
-sign define W text=WW texthl=Todo
-sign define C text=CC texthl=Comment
-sign define R text=RR texthl=Visual
-sign define E text=EE texthl=Error
 
 python << EOF
 
@@ -96,21 +94,21 @@ def fix_current_file():
 
 EOF
 
-function! s:PyLintOnWrite()
+function! pylint#on_write()
     if !g:PyLintOnWrite || exists("b:pylint_disabled") && b:pylint_disabled
         return
     endif
-    call s:PyLintCheck()
+    call pylint#check()
 endfunction
 
-function! s:PyLint()
+function! pylint#run()
     if &modifiable && &modified
         write
     endif
-    call s:PyLintCheck()
+    call pylint#check()
 endfun
 
-function! s:PyLintCheck()
+function! pylint#check()
     py check()
 
     let b:qf_list = []
@@ -139,7 +137,7 @@ function! s:PyLintCheck()
     call setqflist(b:qf_list, 'r')
     " Place signs
     if g:PyLintSigns
-        call s:PlacePyLintSigns()
+        call pylint#place_signs()
     endif
 
     " Open cwindow
@@ -152,8 +150,7 @@ function! s:PyLintCheck()
     endif
 endfunction
 
-
-fun! s:PyLintAuto() "{{{
+function! pylint#auto() "{{{
     if &modifiable && &modified
         try
             write
@@ -167,7 +164,7 @@ fun! s:PyLintAuto() "{{{
     edit
 endfunction "}}}
 
-function! s:PlacePyLintSigns()
+function! pylint#place_signs()
     "first remove all sings
     sign unplace *
 
@@ -182,39 +179,36 @@ endfunction
 " keep track of whether or not we are showing a message
 " WideMsg() prints [long] message up to (&columns-1) length
 " guaranteed without "Press Enter" prompt.
-if !exists("*s:WideMsg")
-    function s:WideMsg(msg)
-        let x=&ruler | let y=&showcmd
-        set noruler noshowcmd
-        redraw
-        echo strpart(a:msg, 0, &columns-1)
-        let &ruler=x | let &showcmd=y
-    endfun
-endif
+function! pylint#wide_msg(msg)
+    let x=&ruler | let y=&showcmd
+    set noruler noshowcmd
+    redraw
+    echo strpart(a:msg, 0, &columns-1)
+    let &ruler=x | let &showcmd=y
+endfun
 
 
-if !exists("*s:GetPyLintMessage")
-    function s:GetPyLintMessage()
-        let s:cursorPos = getpos(".")
+function! pylint#get_message()
+    let s:cursorPos = getpos(".")
 
-        " Bail if RunPyflakes hasn't been called yet.
-        if !exists('s:matchDict')
-            return
-        endif
+    " Bail if RunPyflakes hasn't been called yet.
+    if !exists('s:matchDict')
+        return
+    endif
 
-        " if there's a message for the line the cursor is currently on, echo
-        " it to the console
-        if has_key(s:matchDict, s:cursorPos[1])
-            let s:pyflakesMatch = get(s:matchDict, s:cursorPos[1])
-            call s:WideMsg(s:pyflakesMatch)
-            let b:showing_message = 1
-            return
-        endif
+    " if there's a message for the line the cursor is currently on, echo
+    " it to the console
+    if has_key(s:matchDict, s:cursorPos[1])
+        let s:pyflakesMatch = get(s:matchDict, s:cursorPos[1])
+        call pylint#wide_msg(s:pyflakesMatch)
+        let b:showing_message = 1
+        return
+    endif
 
-        " otherwise, if we're showing a message, clear it
-        if b:showing_message == 1
-            echo
-            let b:showing_message = 0
-        endif
-    endfunction
-endif
+    " otherwise, if we're showing a message, clear it
+    if b:showing_message == 1
+        echo
+        let b:showing_message = 0
+    endif
+endfunction
+
